@@ -178,6 +178,10 @@ class PID
         this.controllerDirection = direction
     }
 
+    fun getKp() = dispKp
+    fun getKi() = dispKi
+    fun getKd() = dispKd
+    fun getMode() = if (inAuto) ControllerMode.AUTOMATIC else ControllerMode.MANUAL
 
     private fun millis(): Long = System.currentTimeMillis()
 }
