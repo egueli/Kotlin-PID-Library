@@ -149,12 +149,12 @@ class PID
      */
     fun setMode(mode: ControllerMode)
     {
-        val newAuto = (mode == ControllerMode.AUTOMATIC);
+        val newAuto = (mode == ControllerMode.AUTOMATIC)
         if(newAuto && !inAuto)
         {  /*we just went from manual to auto*/
-            initialize();
+            initialize()
         }
-        inAuto = newAuto;
+        inAuto = newAuto
     }
 
     fun initialize() {
