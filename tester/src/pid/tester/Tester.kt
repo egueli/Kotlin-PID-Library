@@ -53,7 +53,7 @@ class PidTester {
     }
 
     fun setup() {
-        myPID = PID({ input }, { output = it }, { setpoint }, kp, ki, kd, controllerDirection = ControllerDirection.DIRECT)
+        myPID = PID({ input }, { output }, { output = it }, { setpoint }, kp, ki, kd, controllerDirection = ControllerDirection.DIRECT)
 
         //working variables
         input = inputStart
@@ -78,8 +78,7 @@ class PidTester {
             now = millis() //make sure our evaluations happen at set intervals
         }
 
-        if (now > 60000)
-        {
+        if (now > 60000) {
             println("End Test")
             //block execution to have a clean serial output at the end of the test
             end()

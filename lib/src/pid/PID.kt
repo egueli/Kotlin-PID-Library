@@ -5,9 +5,10 @@ package pid
  */
 class PID
 @JvmOverloads constructor(
-        private val inputCallback: () -> Double,
-        private val outputCallback: (Double) -> Unit,
-        private val setpointCallback: () -> Double,
+        private val getInputCallback: () -> Double,
+        private val getOutputCallback: () -> Double,
+        private val setOutputCallback: (Double) -> Unit,
+        private val getSetpointCallback: () -> Double,
         Kp: Double,
         Ki: Double,
         Kd: Double,
@@ -45,13 +46,13 @@ class PID
         if (timeChange < sampleTime) return false
 
         /*Compute all the working error variables*/
-        val input = inputCallback.invoke()
-        val error = setpointCallback.invoke() - input
+        val input = getInputCallback.invoke()
+        val error = getSetpointCallback.invoke() - input
         val dInput = input - lastInput
         outputSum += ki * error
 
         /*Add Proportional on Measurement, if P_ON_M is specified*/
-        if (proportionalOn == ProportionalOn.ERROR) {
+        if (proportionalOn == ProportionalOn.MEASUREMENT) {
             outputSum -= kp * dInput
         }
 
@@ -70,7 +71,7 @@ class PID
 
         if (output > outMax) output = outMax
         if (output < outMin) output = outMin
-        outputCallback.invoke(output)
+        setOutputCallback.invoke(output)
         lastOutput = output
 
         /*Remember some variables for next time*/
@@ -133,8 +134,8 @@ class PID
         outMax = max
 
         if (inAuto) {
-            if (lastOutput > outMax) outputCallback.invoke(outMax)
-            else if (lastOutput < outMin) outputCallback.invoke(outMin)
+            if (lastOutput > outMax) setOutputCallback.invoke(outMax)
+            else if (lastOutput < outMin) setOutputCallback.invoke(outMin)
 
             if (outputSum > outMax) outputSum = outMax
             else if (outputSum < outMin) outputSum = outMin
@@ -157,8 +158,8 @@ class PID
     }
 
     fun initialize() {
-        outputSum = lastOutput
-        lastInput = inputCallback.invoke()
+        outputSum = getOutputCallback.invoke()
+        lastInput = getInputCallback.invoke()
         if (outputSum > outMax) outputSum = outMax
         else if (outputSum < outMin) outputSum = outMin
     }
