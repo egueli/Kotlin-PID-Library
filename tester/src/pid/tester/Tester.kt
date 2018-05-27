@@ -11,7 +11,6 @@ fun main(args: Array<String>) {
 
 class PidTester {
     lateinit var myPID: PID
-    var millisStart: Long = 0L
 
     //working variables/initial conditions
     var setpoint = 0.0
@@ -45,15 +44,15 @@ class PidTester {
     var endPlease = false
 
     fun start() {
-        millisStart = System.currentTimeMillis()
         setup()
         while (!endPlease) {
             loop()
+            now += evalInc
         }
     }
 
     fun setup() {
-        myPID = PID({ input }, { output }, { output = it }, { setpoint }, kp, ki, kd, controllerDirection = ControllerDirection.DIRECT)
+        myPID = PID({ input }, { output }, { output = it }, { setpoint }, kp, ki, kd, controllerDirection = ControllerDirection.DIRECT, timeFunction = { now })
 
         //working variables
         input = inputStart
@@ -74,8 +73,9 @@ class PidTester {
 
     fun loop() {
 
-        while (now < evalTime) {
-            now = millis() //make sure our evaluations happen at set intervals
+        //make sure our evaluations happen at set intervals
+        if (now < evalTime) {
+            return
         }
 
         if (now > 60000) {
@@ -151,8 +151,7 @@ class PidTester {
             input = kpmodel / taup * (theta[tindex] - outputStart) + (input - inputStart) * (1 - 1 / taup) + inputStart
 
         //add some noise
-        input += random(-10.0, 10.0) / 100
-
+        //input += random(-10.0, 10.0) / 100
     }
 
     private fun DoSerial() {
@@ -172,8 +171,6 @@ class PidTester {
         limitsMax = max
         myPID.setOutputLimits(min, max)
     }
-
-    private fun millis(): Long = System.currentTimeMillis() - millisStart
 
     private fun random(lowerBound: Double, upperBound: Double): Double {
         return Math.random() * (upperBound - lowerBound) + lowerBound

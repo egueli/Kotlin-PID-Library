@@ -13,7 +13,8 @@ class PID
         Ki: Double,
         Kd: Double,
         private var proportionalOn: ProportionalOn = ProportionalOn.ERROR,
-        controllerDirection: ControllerDirection
+        controllerDirection: ControllerDirection,
+        private var timeFunction: () -> Long = { System.currentTimeMillis() }
 ) {
     private var inAuto: Boolean = false
     private var lastTime: Long = 0
@@ -184,7 +185,7 @@ class PID
     fun getKd() = dispKd
     fun getMode() = if (inAuto) ControllerMode.AUTOMATIC else ControllerMode.MANUAL
 
-    private fun millis(): Long = System.currentTimeMillis()
+    private fun millis() = timeFunction.invoke()
 }
 
 enum class ProportionalOn { MEASUREMENT, ERROR }
