@@ -58,7 +58,7 @@ class PidTester {
         input = inputStart
         setpoint = setpointStart
         output = outputStart
-        for (i in 0 until ntheta)
+        for (i in 0 until ntheta) theta[i] = outputStart
 
         //initialize pid
         setOutputLimits(-250.0, 250.0)
