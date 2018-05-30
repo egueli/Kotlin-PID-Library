@@ -26,7 +26,7 @@ class PidTester {
     //parameters used to simulate the process connected to the pid
     val ntheta = 50
     var kpmodel = 1.0
-    var taup = 50
+    var taup = 50.0
     var theta = DoubleArray(ntheta)
     var integrating = false
     var tindex = 0
