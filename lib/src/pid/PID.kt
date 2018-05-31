@@ -2,13 +2,22 @@ package pid
 
 /**
  * PID library, ported from [https://github.com/br3ttb/Arduino-PID-Library].
+ *
+ * At startup, it is in manual mode. It can go
+ * into effective operation after calling [setMode] with [ControllerMode.AUTOMATIC].
+ *
+ * @param process an instance of the [Process] interface that holds the input,
+ * setpoint and output values.
+ * @param Kp the proportional term of the PID control. Can be changed with [setTunings].
+ * @param Ki the integral term of the PID control. Can be changed with [setTunings].
+ * @param Kd the derivative term of the PID control. Can be changed with [setTunings].
+ * @param proportionalOn tells at which part the proportional term should be applied to. See [ProportionalOn] for details.
+ * @param controllerDirection the controller direction. See [ControllerDirection] for details.
+ * @param timeFunction the function that tells the current time. If specified, the lambda must return a never-decreasing number.
  */
 class PID
 @JvmOverloads constructor(
-        private val getInputCallback: () -> Double,
-        private val getOutputCallback: () -> Double,
-        private val setOutputCallback: (Double) -> Unit,
-        private val getSetpointCallback: () -> Double,
+        private val process: Process,
         Kp: Double,
         Ki: Double,
         Kd: Double,
@@ -39,6 +48,14 @@ class PID
         lastTime = millis() - sampleTime
     }
 
+    /**
+     * This, as they say, is where the magic happens.  This function should be called
+     * as often as possible, or at least as fast as the sample time specified in
+     * [setSampleTime]. The function will decide for itself whether a new
+     * PID output needs to be computed. It will read [Process.input] and [Process.setpoint]
+     * and will write the output to [Process.output].
+     * @return true when the output is computed, false when nothing has been done.
+     **/
     fun compute(): Boolean {
         if (!inAuto) return false
 
@@ -47,9 +64,8 @@ class PID
         if (timeChange < sampleTime) return false
 
         /*Compute all the working error variables*/
-        val input = getInputCallback.invoke()
-        val error = getSetpointCallback.invoke() - input
-        val dInput = input - lastInput
+        val error = process.setpoint - process.input
+        val dInput = process.input - lastInput
         outputSum += ki * error
 
         /*Add Proportional on Measurement, if P_ON_M is specified*/
@@ -72,11 +88,11 @@ class PID
 
         if (output > outMax) output = outMax
         if (output < outMin) output = outMin
-        setOutputCallback.invoke(output)
+        process.output = output
         lastOutput = output
 
         /*Remember some variables for next time*/
-        lastInput = input
+        lastInput = process.input
         lastTime = now
         return true
     }
@@ -121,12 +137,8 @@ class PID
     }
 
     /**
-     *  This function will be used far more often than SetInputLimits.  while
-     *  the input to the controller will generally be in the 0-1023 range (which is
-     *  the default already,)  the output will be a little different.  maybe they'll
-     *  be doing a time window and will need 0-8000 or something.  or maybe they'll
-     *  want to clamp it from 0-125.  who knows.  at any rate, that can all be done
-     *  here.
+     * Set the minimum/maximum values that can be present at the output. If the
+     * current output is outside these values, it will be clamped.
      */
     fun setOutputLimits(min: Double, max: Double) {
         if (min >= max) throw IllegalArgumentException("maximum output must be higher than the minimum output")
@@ -135,8 +147,8 @@ class PID
         outMax = max
 
         if (inAuto) {
-            if (lastOutput > outMax) setOutputCallback.invoke(outMax)
-            else if (lastOutput < outMin) setOutputCallback.invoke(outMin)
+            if (lastOutput > outMax) process.output = outMax
+            else if (lastOutput < outMin) process.output = outMin
 
             if (outputSum > outMax) outputSum = outMax
             else if (outputSum < outMin) outputSum = outMin
@@ -144,23 +156,21 @@ class PID
     }
 
     /**
-     * Allows the controller Mode to be set to manual (0) or Automatic (non-zero)
+     * Allows the controller Mode to be set to manual or Automatic (non-zero)
      * when the transition from manual to auto occurs, the controller is
      * automatically initialized
      */
-    fun setMode(mode: ControllerMode)
-    {
+    fun setMode(mode: ControllerMode) {
         val newAuto = (mode == ControllerMode.AUTOMATIC)
-        if(newAuto && !inAuto)
-        {  /*we just went from manual to auto*/
+        if (newAuto && !inAuto) {  /*we just went from manual to auto*/
             initialize()
         }
         inAuto = newAuto
     }
 
     fun initialize() {
-        outputSum = getOutputCallback.invoke()
-        lastInput = getInputCallback.invoke()
+        outputSum = process.output
+        lastInput = process.input
         if (outputSum > outMax) outputSum = outMax
         else if (outputSum < outMin) outputSum = outMin
     }
@@ -190,4 +200,48 @@ class PID
 
 enum class ProportionalOn { MEASUREMENT, ERROR }
 enum class ControllerMode { MANUAL, AUTOMATIC }
-enum class ControllerDirection { DIRECT, REVERSE }
+
+/**
+ * Describes the direction of the controller, i.e. the sign of the output.
+ */
+enum class ControllerDirection {
+    /**
+     * A positive number in the output will cause eventually an increase of the
+     * input.
+     */
+    DIRECT,
+    /**
+     * A positive number in the output will cause eventually a decrease of the
+     * input.
+     */
+    REVERSE
+}
+
+/**
+ * Provides the link to the process to be controlled by a [PID].
+ */
+interface Process {
+    /**
+     * The input to be fed to the controller, i.e. the current state of the process.
+     * This must be updated before calling [PID.compute].
+     */
+    var input: Double
+
+    /**
+     * The output of the controller, i.e. the process parameter to control.
+     *
+     * Once [PID.compute] is called, read this value to set the process to that
+     * value.
+     *
+     * Please keep this value updated when the process is controlled externally,
+     * i.e. while the controller is in [ControllerMode.MANUAL] mode. This allows
+     * for a smooth engagement when the controller is set to [ControllerMode.AUTOMATIC].
+     */
+    var output: Double
+
+    /**
+     * The desired state of the process. The controller will try to change
+     * [output] so that [input] is equal to this value.
+     */
+    var setpoint: Double
+}

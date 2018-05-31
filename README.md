@@ -15,8 +15,6 @@ The library and its tester differ from the original in these aspects:
 time and eliminate the effects of non-real-time behavior in x86 architecture.
 * the original code uses pointers to
 variables to read/write the input, output and setpoint. Kotlin doesn't
-support pointers (not on JVM at least), so here I use callbacks and lambdas.
-
-## TODO
-* Ensure that this library outputs exactly the same as the original library.
+support pointers (not on JVM at least), so here I use an interface that
+specifies properties.
 

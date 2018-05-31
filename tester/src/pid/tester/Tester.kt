@@ -3,19 +3,20 @@ package pid.tester
 import pid.ControllerMode
 import pid.PID
 import pid.ControllerDirection
+import pid.Process
 
 
 fun main(args: Array<String>) {
     PidTester().start()
 }
 
-class PidTester {
+class PidTester : Process {
     lateinit var myPID: PID
 
     //working variables/initial conditions
-    var setpoint = 0.0
-    var input = 0.0
-    var output = 0.0
+    override var setpoint = 0.0
+    override var input = 0.0
+    override var output = 0.0
     var kp = 1.0
     var ki = 2.0
     var kd = 0.0
@@ -52,7 +53,7 @@ class PidTester {
     }
 
     fun setup() {
-        myPID = PID({ input }, { output }, { output = it }, { setpoint }, kp, ki, kd, controllerDirection = ControllerDirection.DIRECT, timeFunction = { now })
+        myPID = PID(this, kp, ki, kd, controllerDirection = ControllerDirection.DIRECT, timeFunction = { now })
 
         //working variables
         input = inputStart
