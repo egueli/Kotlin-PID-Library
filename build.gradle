@@ -9,7 +9,7 @@ buildscript {
     }
 }
 
-group 'com.egueli'
+group 'com.github.egueli'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'kotlin'
